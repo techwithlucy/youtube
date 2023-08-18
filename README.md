@@ -1,1 +1,1 @@
-Code for Tech With Lucy YouTube Tutorials
+Resources for Tech With Lucy YouTube Tutorials

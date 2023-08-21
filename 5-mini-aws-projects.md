@@ -149,7 +149,7 @@ Create a "Fortune Teller" application using AWS Lambda, that answers "yes", "no"
 - Approximately 2-3 hours.
 
 ### Add to Your Resume
-Once you've completed this project, you can add this line to your resume: "Built a Fortune Teller application using AWS Lambda, that responds to user questions."
+Once you've completed this project, you can add this line to your resume: "Built a Fortune Teller application using AWS Lambda and API Gateway, that responds to user questions."
 
 ## Project #5: Multi-Tier, Highly Available, Fault-Tolerant Web Application (Advanced)
 

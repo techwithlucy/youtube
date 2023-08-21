@@ -118,7 +118,7 @@ Create a "Fortune Teller" application using AWS Lambda, that answers "yes", "no"
 - Under "Function code", write or upload the code for generating random responses.
 - Configure the function settings, such as memory, timeout, and execution role.
 
-#### Step #2: Write the Fortune-Telling Code
+### Step #2: Write the Fortune-Telling Code
 - Import the random module in Python.
 - Define a function that generates a random integer between 1 and 3.
 - Use conditional statements to map the random integer to a response (e.g., 1 = "yes", 2 = "no", 3 = "maybe").

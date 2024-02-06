@@ -2,7 +2,7 @@
    "fileLocations": [
        {
            "URIs": [
-               "s3://BUCKET-NAME/Amazon-Bestseller-Dataset.csv"
+               "s3://sierra-aws-project/Amazon-Bestseller-Dataset.csv"
            ]
        }
    ],

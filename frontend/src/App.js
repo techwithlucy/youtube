@@ -434,7 +434,11 @@ const AuthPage = () => {
       
       login(response.data.access_token);
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
-      navigate('/dashboard');
+      
+      // Use setTimeout to ensure the token is set before navigation
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Authentication failed');
     } finally {

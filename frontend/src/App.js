@@ -1230,14 +1230,17 @@ const PremiumPage = () => {
   const [studyPlans, setStudyPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user?.is_premium) {
       fetchStudyPlans();
     }
     
-    // Check for payment success
+    // Check for payment success/failure
     const urlParams = new URLSearchParams(location.search);
     const sessionId = urlParams.get('session_id');
     if (sessionId) {

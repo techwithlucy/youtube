@@ -1983,7 +1983,7 @@ function App() {
             } />
             <Route path="/premium/success" element={
               <ProtectedRoute>
-                <PremiumPage />
+                <CheckoutSuccessPage />
               </ProtectedRoute>
             } />
           </Routes>

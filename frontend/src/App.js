@@ -1737,7 +1737,221 @@ const PremiumPage = () => {
   );
 };
 
-function App() {
+// Checkout Success Page Component
+const CheckoutSuccessPage = () => {
+  const [verifying, setVerifying] = useState(true);
+  const [paymentResult, setPaymentResult] = useState(null);
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const sessionId = urlParams.get('session_id');
+    
+    if (sessionId) {
+      verifyPayment(sessionId);
+    } else {
+      // No session ID, redirect to premium page
+      navigate('/premium');
+    }
+  }, [location, navigate]);
+
+  const verifyPayment = async (sessionId) => {
+    try {
+      let attempts = 0;
+      const maxAttempts = 15; // Wait up to 30 seconds
+      const pollInterval = 2000;
+
+      const checkStatus = async () => {
+        try {
+          const response = await axios.get(`${API}/payments/status/${sessionId}`);
+          const status = response.data;
+
+          if (status.payment_status === 'paid') {
+            setPaymentResult({
+              success: true,
+              amount: (status.amount_total / 100).toFixed(2),
+              currency: status.currency.toUpperCase(),
+              sessionId: sessionId
+            });
+            setVerifying(false);
+            
+            // Show success message
+            toast.success('Payment successful! Welcome to Premium!');
+            
+          } else if (status.status === 'expired' || status.payment_status === 'failed') {
+            setPaymentResult({
+              success: false,
+              error: 'Payment was not completed or failed.'
+            });
+            setVerifying(false);
+            
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(checkStatus, pollInterval);
+          } else {
+            setPaymentResult({
+              success: false,
+              error: 'Payment verification timed out. Please check your email for confirmation.'
+            });
+            setVerifying(false);
+          }
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          setPaymentResult({
+            success: false,
+            error: 'Failed to verify payment. Please contact support if you were charged.'
+          });
+          setVerifying(false);
+        }
+      };
+
+      checkStatus();
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      setPaymentResult({
+        success: false,
+        error: 'Failed to verify payment. Please contact support if you were charged.'
+      });
+      setVerifying(false);
+    }
+  };
+
+  if (verifying) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-6"></div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Verifying Payment
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Please wait while we confirm your payment...
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                This may take up to 30 seconds. Please don't close this page.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (paymentResult?.success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-lg">
+          <CardContent className="p-8 text-center">
+            <div className="bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Payment Successful!
+            </h2>
+            
+            <p className="text-lg text-gray-600 mb-6">
+              Welcome to CloudCareer Coach Premium! 🎉
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="text-sm text-gray-600 space-y-2">
+                <div className="flex justify-between">
+                  <span>Amount Paid:</span>
+                  <span className="font-semibold">${paymentResult.amount} {paymentResult.currency}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Status:</span>
+                  <span className="font-semibold text-green-600">Confirmed</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Transaction ID:</span>
+                  <span className="font-mono text-xs">{paymentResult.sessionId?.substring(0, 16)}...</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">What's Next?</h3>
+                <ul className="text-sm text-blue-800 space-y-1 text-left">
+                  <li>• Generate AI-powered weekly study plans</li>
+                  <li>• Access premium career guidance</li>
+                  <li>• Track your learning progress</li>
+                  <li>• Get personalized recommendations</li>
+                </ul>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => navigate('/premium')}
+                  className="flex-1"
+                >
+                  <Rocket className="h-4 w-4 mr-2" />
+                  Start Learning
+                </Button>
+                <Button 
+                  onClick={() => navigate('/dashboard')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Go to Dashboard
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Payment failed or error
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-lg">
+        <CardContent className="p-8 text-center">
+          <div className="bg-red-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <X className="h-12 w-12 text-red-600" />
+          </div>
+          
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Payment Issue
+          </h2>
+          
+          <p className="text-gray-600 mb-6">
+            {paymentResult?.error || 'There was an issue processing your payment.'}
+          </p>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-yellow-800">
+              If you were charged, please contact our support team with your transaction details.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={() => navigate('/premium')}
+              className="flex-1"
+            >
+              Try Again
+            </Button>
+            <Button 
+              onClick={() => navigate('/dashboard')}
+              variant="outline"
+              className="flex-1"
+            >
+              Go to Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
   return (
     <AuthProvider>
       <BrowserRouter>

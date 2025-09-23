@@ -1276,31 +1276,94 @@ const PremiumPage = () => {
   const handleUpgrade = async (packageId) => {
     setPaymentLoading(true);
     try {
+      toast.info('Redirecting to secure checkout...', { duration: 2000 });
+      
       const response = await axios.post(`${API}/payments/checkout?package_id=${packageId}`, {}, {
         headers: {
           'Origin': window.location.origin
         }
       });
       
+      // Store payment info in sessionStorage for better UX
+      sessionStorage.setItem('pendingPayment', JSON.stringify({
+        packageId,
+        packageName: packageId === 'monthly' ? 'Monthly Premium' : 'Yearly Premium',
+        amount: packageId === 'monthly' ? '$29.99' : '$299.99',
+        timestamp: Date.now()
+      }));
+      
       // Redirect to Stripe checkout
       window.location.href = response.data.url;
     } catch (error) {
-      toast.error('Failed to start checkout process');
       setPaymentLoading(false);
+      console.error('Checkout error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to start checkout process');
     }
   };
 
   const checkPaymentStatus = async (sessionId) => {
-    try {
-      const response = await axios.get(`${API}/payments/status/${sessionId}`);
-      if (response.data.payment_status === 'paid') {
-        toast.success('Payment successful! Welcome to Premium!');
-        // Refresh user data
-        window.location.reload();
+    setCheckingPayment(true);
+    let attempts = 0;
+    const maxAttempts = 10;
+    const pollInterval = 2000; // 2 seconds
+
+    const pollStatus = async () => {
+      try {
+        const response = await axios.get(`${API}/payments/status/${sessionId}`);
+        const status = response.data;
+        
+        if (status.payment_status === 'paid') {
+          setPaymentStatus({
+            type: 'success',
+            message: 'Payment successful! Welcome to Premium!',
+            details: status
+          });
+          toast.success('Payment successful! Welcome to Premium!');
+          
+          // Clear any pending payment info
+          sessionStorage.removeItem('pendingPayment');
+          
+          // Refresh user data after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+          
+        } else if (status.status === 'expired' || status.payment_status === 'failed') {
+          setPaymentStatus({
+            type: 'error',
+            message: 'Payment was not completed. Please try again.',
+            details: status
+          });
+          toast.error('Payment was not completed. Please try again.');
+          
+        } else if (attempts < maxAttempts) {
+          // Continue polling
+          attempts++;
+          setTimeout(pollStatus, pollInterval);
+          return;
+        } else {
+          setPaymentStatus({
+            type: 'timeout',
+            message: 'Payment status check timed out. Please check your email for confirmation.',
+            details: status
+          });
+          toast.warning('Payment status check timed out. Please check your email for confirmation.');
+        }
+        
+        setCheckingPayment(false);
+      } catch (error) {
+        console.error('Failed to check payment status:', error);
+        setCheckingPayment(false);
+        setPaymentStatus({
+          type: 'error',
+          message: 'Failed to verify payment. Please contact support if you were charged.',
+          details: null
+        });
+        toast.error('Failed to verify payment. Please contact support if you were charged.');
       }
-    } catch (error) {
-      console.error('Failed to check payment status:', error);
-    }
+    };
+
+    pollStatus();
   };
 
   if (user?.is_premium) {

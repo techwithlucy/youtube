@@ -1952,6 +1952,8 @@ const CheckoutSuccessPage = () => {
     </div>
   );
 };
+
+function App() {
   return (
     <AuthProvider>
       <BrowserRouter>

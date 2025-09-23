@@ -1637,7 +1637,14 @@ const PremiumPage = () => {
                   onClick={() => handleUpgrade('monthly')}
                   disabled={paymentLoading}
                 >
-                  {paymentLoading ? 'Processing...' : 'Upgrade to Monthly'}
+                  {paymentLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Upgrade to Monthly'
+                  )}
                 </Button>
               </CardContent>
             </Card>

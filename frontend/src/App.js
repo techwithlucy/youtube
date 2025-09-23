@@ -1367,6 +1367,102 @@ const PremiumPage = () => {
     pollStatus();
   };
 
+  // Payment Status Display Component
+  const PaymentStatusCard = () => {
+    if (!paymentStatus && !checkingPayment) return null;
+
+    if (checkingPayment) {
+      return (
+        <Card className="mb-8 border-blue-200 bg-blue-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center space-x-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900">Verifying Payment</h3>
+                <p className="text-blue-700">Please wait while we confirm your payment...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const statusConfig = {
+      success: {
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200',
+        textColor: 'text-green-900',
+        iconColor: 'text-green-600',
+        icon: CheckCircle
+      },
+      error: {
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200',
+        textColor: 'text-red-900',
+        iconColor: 'text-red-600',
+        icon: X
+      },
+      timeout: {
+        bgColor: 'bg-yellow-50',
+        borderColor: 'border-yellow-200',
+        textColor: 'text-yellow-900',
+        iconColor: 'text-yellow-600',
+        icon: Clock
+      }
+    };
+
+    const config = statusConfig[paymentStatus.type];
+    const StatusIcon = config.icon;
+
+    return (
+      <Card className={`mb-8 ${config.borderColor} ${config.bgColor}`}>
+        <CardContent className="p-6">
+          <div className="flex items-start space-x-4">
+            <StatusIcon className={`h-8 w-8 ${config.iconColor} mt-1`} />
+            <div className="flex-1">
+              <h3 className={`text-lg font-semibold ${config.textColor} mb-2`}>
+                Payment Status
+              </h3>
+              <p className={`${config.textColor} mb-4`}>
+                {paymentStatus.message}
+              </p>
+              
+              {paymentStatus.details && (
+                <div className="text-sm space-y-1">
+                  <p className={config.textColor}>
+                    <span className="font-medium">Amount:</span> ${(paymentStatus.details.amount_total / 100).toFixed(2)} {paymentStatus.details.currency.toUpperCase()}
+                  </p>
+                  <p className={config.textColor}>
+                    <span className="font-medium">Status:</span> {paymentStatus.details.payment_status}
+                  </p>
+                </div>
+              )}
+              
+              {paymentStatus.type === 'success' && (
+                <div className="mt-4">
+                  <Button onClick={() => navigate('/dashboard')} size="sm">
+                    Go to Dashboard
+                  </Button>
+                </div>
+              )}
+              
+              {paymentStatus.type === 'error' && (
+                <div className="mt-4 space-x-2">
+                  <Button onClick={() => window.location.href = '/premium'} size="sm" variant="outline">
+                    Try Again
+                  </Button>
+                  <Button onClick={() => setPaymentStatus(null)} size="sm" variant="ghost">
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (user?.is_premium) {
     return (
       <div className="min-h-screen bg-gray-50">

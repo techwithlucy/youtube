@@ -32,7 +32,8 @@ import {
   Users,
   ArrowRight,
   Menu,
-  X
+  X,
+  Clock
 } from "lucide-react";
 import "./App.css";
 

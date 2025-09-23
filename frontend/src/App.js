@@ -1687,7 +1687,14 @@ const PremiumPage = () => {
                   onClick={() => handleUpgrade('yearly')}
                   disabled={paymentLoading}
                 >
-                  {paymentLoading ? 'Processing...' : 'Upgrade to Yearly'}
+                  {paymentLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Upgrade to Yearly'
+                  )}
                 </Button>
               </CardContent>
             </Card>

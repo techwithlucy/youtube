@@ -1591,6 +1591,8 @@ const PremiumPage = () => {
       
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
+          <PaymentStatusCard />
+          
           <div className="text-center">
             <Crown className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

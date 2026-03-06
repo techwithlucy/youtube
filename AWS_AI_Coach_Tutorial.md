@@ -1,17 +1,17 @@
-# Complete Fine-Tuning Guide: AWS Job Interview Playbook
+## Complete Fine-Tuning Guide: AWS Job Interview Playbook
 
 This guide helps you build a custom AI coach. It learns from your specific notes so it can answer questions in your voice.
 
 ### Step 1: Install Required Tools
 
-Run this first to prepare the environment. These tools allow the model to run fast on the GPU and learn from your data.
+Run this cell to set up your environment. These libraries allow the model to run efficiently on the GPU and handle the training process.
 
 ```python
 import subprocess
 import sys
 
 print("Installing required packages...")
-packages = ["transformers>=4.41.0", "datasets", "accelerate", "peft", "trl", "bitsandbytes"]
+packages = ["transformers>=4.41.0", "datasets", "accelerate", "peft", "trl", "bitsandbytes", "huggingface_hub", "scikit-learn"]
 
 for package in packages:
     subprocess.run([sys.executable, "-m", "pip", "install", "-U", package], check=True)
@@ -22,15 +22,32 @@ print("\n Environment is Ready!")
 
 ---
 
-### Step 2: Prepare the Training Data
+### Step 2: Get Your Access Token
 
-This part takes your raw notes and turns them into a format the AI can understand.
+To use the Mistral model, you need a free account and a "Read" token from Hugging Face.
 
-**Note:** I have replaced the data with a placeholder. Delete the example text and paste your own notes between the triple quotes.
+1. Go to [huggingface.co](https://huggingface.co/) and sign in.
+2. Click on your **Profile Picture** (top right) and go to **Settings**.
+3. Click **Access Tokens** on the left sidebar.
+4. Click **New Token**, give it a name (like "AWS-Coach"), set it to **Read**, and click **Generate**.
+5. Copy that token and paste it when you run the code below.
+
+```python
+from huggingface_hub import login
+login()
+
+```
+
+---
+
+### Step 3: Prepare the Training Data
+
+This script takes your raw Q&A notes and converts them into the specific instruction format the AI needs to learn. It also splits your data into a "train" set and a "validation" set so we can monitor how well the model is learning.
 
 ```python
 import json
 import re
+from sklearn.model_selection import train_test_split
 
 # --- PASTE YOUR CONTENT BELOW ---
 data = """
@@ -41,103 +58,107 @@ A: Cloud computing refers to the on-demand delivery of IT resources over the Int
 """
 # --- END OF YOUR CONTENT ---
 
-# This script converts your notes into the "Instruction" format the AI needs
-raw_pairs = re.split(r'(?=Q:)', data)
+# Clean and split the text into pairs
+raw_pairs = data.strip().split("Q:")[1:]
 records = []
 
 for pair in raw_pairs:
     if "A:" in pair:
         parts = pair.split("A:", 1)
-        q_text = parts[0].replace("Q:", "").strip()
+        q_text = parts[0].strip()
         a_text = parts[1].strip()
+        # Formatting for the Mistral model
         full_entry = f"<s>[INST] {q_text} [/INST] {a_text}</s>"
         records.append({"text": full_entry})
 
-with open("train.jsonl", "w", encoding="utf-8") as f:
-    for r in records:
-        f.write(json.dumps(r) + "\n")
+# Divide data for training and testing
+train_data, val_data = train_test_split(records, test_size=0.1, random_state=42)
 
-print(f"Created {len(records)} training records in 'train.jsonl'")
+def save_jsonl(data, filename):
+    with open(filename, "w", encoding="utf-8") as f:
+        for r in data:
+            f.write(json.dumps(r) + "\n")
+
+save_jsonl(train_data, "train.jsonl")
+save_jsonl(val_data, "val.jsonl")
+
+print(f"Created {len(train_data)} training and {len(val_data)} validation records.")
 
 ```
 
 ---
 
-### Step 3: Train the Model (H200 Optimized)
+### Step 4: Train the Model
 
-In this script, we use a trick called **LoRA**. It’s a shortcut that lets us add our notes as a small "expert layer" on top of the AI. This saves a lot of time and money. We also use **Bfloat16** to make the H200 chip work at top speed.
+This step uses **LoRA** to add a small, specialized layer to the model based on your notes. We use the **SFTTrainer** to handle the formatting and memory management. The settings are tuned to ensure the AI learns to reason rather than just memorizing your text.
 
 ```python
 import torch
 from datasets import load_dataset
-from transformers import (
-    AutoTokenizer, 
-    AutoModelForCausalLM, 
-    TrainingArguments, 
-    Trainer, 
-    DataCollatorForLanguageModeling
-)
-from peft import LoraConfig, get_peft_model
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from trl import SFTTrainer
+from peft import LoraConfig
 
 BASE_MODEL = "mistralai/Mistral-7B-v0.3"
 OUT_DIR = "aws-playbook-model"
 
-# 1. Load Data
-dataset = load_dataset("json", data_files="train.jsonl", split="train")
+# 1. Load the prepared data
+dataset = load_dataset("json", data_files={"train": "train.jsonl", "validation": "val.jsonl"})
 tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 tokenizer.pad_token = tokenizer.eos_token
-tokenizer.padding_side = "right"
 
-tokenized_ds = dataset.map(lambda x: tokenizer(x["text"], truncation=True, max_length=1024), batched=True)
-
-# 2. Load Model
+# 2. Load the base model with 16-bit precision
 model = AutoModelForCausalLM.from_pretrained(
     BASE_MODEL,
     torch_dtype=torch.bfloat16, 
     device_map="auto"
 )
 
-# 3. LoRA setup
+# 3. Configure the LoRA expert layer
 lora_config = LoraConfig(
     r=32, lora_alpha=64,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     task_type="CAUSAL_LM"
 )
-model = get_peft_model(model, lora_config)
 
-# 4. Training
+# 4. Set training parameters
 args = TrainingArguments(
     output_dir=OUT_DIR,
     per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
-    learning_rate=5e-5,
-    num_train_epochs=15,
+    learning_rate=2e-4, 
+    num_train_epochs=3,
     bf16=True,
     logging_steps=1,
+    evaluation_strategy="epoch",
     save_strategy="no",
-    optim="adamw_torch_fused",
     report_to="none"
 )
 
-trainer = Trainer(
-    model=model, args=args,
-    train_dataset=tokenized_ds,
-    data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
+# 5. Start the training process
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["validation"],
+    peft_config=lora_config,
+    dataset_text_field="text",
+    max_seq_length=1024,
+    tokenizer=tokenizer,
+    args=args,
 )
 
 print("Starting training...")
 trainer.train()
-trainer.model.save_pretrained(OUT_DIR)
-tokenizer.save_pretrained(OUT_DIR)
+trainer.save_model(OUT_DIR)
 print(f"✅ Training Complete! Saved to: {OUT_DIR}")
 
 ```
 
 ---
 
-### Step 4: Load and Activate the Model
+### Step 5: Load and Ask Questions
 
-Run this cell once to "wake up" the model. What’s happening here is we’re loading the base AI and clicking our new training right onto it. This script also sets up the **'ask_ai'** tool to keep the answers clean and focused.
+This script loads the base model and attaches your new "expert layer." It includes a function called `ask_ai` that cleans up the answers to make them professional and helpful.
 
 ```python
 from peft import PeftModel
@@ -148,7 +169,11 @@ BASE_MODEL = "mistralai/Mistral-7B-v0.3"
 ADAPTER_DIR = "aws-playbook-model"
 
 tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL, torch_dtype=torch.bfloat16, device_map="auto")
+base_model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL, 
+    torch_dtype=torch.bfloat16, 
+    device_map="auto"
+)
 model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
 model.eval()
 
@@ -159,8 +184,9 @@ def ask_ai(question):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=300, # If answers get cut off, change this to 500
+            max_new_tokens=300,
             temperature=0.3,
+            top_p=0.9,
             repetition_penalty=1.1,
             do_sample=True,
             eos_token_id=tokenizer.eos_token_id,
@@ -168,16 +194,10 @@ def ask_ai(question):
         )
     
     full_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if "[/INST]" in full_text:
-        answer = full_text.split("[/INST]")[-1].strip()
-    else:
-        answer = full_text.replace(question, "").strip()
-    if "Related:" in answer:
-        answer = answer.split("Related:")[0].strip()
-        
+    answer = full_text.split("[/INST]")[-1].strip()
     return answer
     
-print("🎉 Model Loaded Successfully! You can now ask your questions.")
+print("🎉 Model Loaded! You can now ask questions.")
 
 ```
 

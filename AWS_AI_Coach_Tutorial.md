@@ -1,4 +1,4 @@
-## Complete Fine-Tuning Guide: AWS Job Interview Playbook
+## Complete Fine-Tuning Guide: AWS AI Coach Playbook
 
 This guide helps you build a custom AI coach. It learns from your specific notes so it can answer questions in your voice.
 

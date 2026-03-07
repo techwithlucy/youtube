@@ -1,4 +1,3 @@
-```markdown
 # AWS Job Interview Playbook: Custom AI Coach
 
 This project is a complete fine-tuning guide to help you build a custom AI coach. It learns from your specific notes and AWS interview prep materials so it can answer questions in your own voice.

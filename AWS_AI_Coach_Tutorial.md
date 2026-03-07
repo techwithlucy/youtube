@@ -3,7 +3,7 @@
 
 This project is a complete fine-tuning guide to help you build a custom AI coach. It learns from your specific notes and AWS interview prep materials so it can answer questions in your own voice.
 
-## 🚀 Overview
+## Overview
 Using **Mistral-7B-v0.3**, **LoRA (Low-Rank Adaptation)**, and **AWS H200 optimized settings**, this playbook allows you to create a specialized AI assistant without needing massive computing power.
 
 ### Key Features

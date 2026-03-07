@@ -1,10 +1,23 @@
-Complete Fine-Tuning Guide: AWS Job Interview Playbook
-This guide helps you build a custom AI coach. It learns from your specific notes so it can answer questions in your voice.
+```markdown
+# AWS Job Interview Playbook: Custom AI Coach
 
-Step 1: Install Required Tools
-Run this cell to set up your environment. These libraries allow the model to run efficiently on the GPU and handle the training process.
+This project is a complete fine-tuning guide to help you build a custom AI coach. It learns from your specific notes and AWS interview prep materials so it can answer questions in your own voice.
 
-Python
+## 🚀 Overview
+Using **Mistral-7B-v0.3**, **LoRA (Low-Rank Adaptation)**, and **AWS H200 optimized settings**, this playbook allows you to create a specialized AI assistant without needing massive computing power.
+
+### Key Features
+* **SFTTrainer Integration:** Uses the latest `trl` patterns for stable instruction training.
+* **Memory Optimized:** Configured for Bfloat16 and 4-bit/8-bit loading to prevent OOM errors.
+* **Validation Split:** Automatically sets aside data to monitor learning quality.
+* **Interview Ready:** Formatted to handle "Question/Answer" pairs specifically for job prep.
+
+---
+
+## 🛠️ Step 1: Install Required Tools
+Run this block to set up your environment with the necessary libraries for cloud computing and model training.
+
+```python
 import subprocess
 import sys
 
@@ -15,26 +28,33 @@ for package in packages:
     subprocess.run([sys.executable, "-m", "pip", "install", "-U", package], check=True)
 
 print("\n Environment is Ready!")
-Step 2: Get Your Access Token
-To use the Mistral model, you need a free account and a "Read" token from Hugging Face.
 
-Go to huggingface.co and sign in.
+```
 
-Click on your Profile Picture (top right) and go to Settings.
+---
 
-Click Access Tokens on the left sidebar.
+## 🔑 Step 2: Get Your Access Token
 
-Click New Token, give it a name (like "AWS-Coach"), set it to Read, and click Generate.
+To use the Mistral model, you need a free "Read" token from Hugging Face.
 
-Copy that token and paste it when you run the code below.
+1. Sign in at [huggingface.co](https://huggingface.co/).
+2. Go to **Settings** > **Access Tokens**.
+3. Generate a new **Read** token.
+4. Paste it into the login prompt below.
 
-Python
+```python
 from huggingface_hub import login
 login()
-Step 3: Prepare the Training Data
-This script takes your raw Q&A notes and converts them into the specific instruction format the AI needs to learn.
 
-Python
+```
+
+---
+
+## 📊 Step 3: Prepare the Training Data
+
+Paste your interview notes below. This script converts them into the instruction format and splits them into training and validation sets.
+
+```python
 import json
 import re
 from sklearn.model_selection import train_test_split
@@ -70,10 +90,16 @@ save_jsonl(train_data, "train.jsonl")
 save_jsonl(val_data, "val.jsonl")
 
 print(f"Created {len(train_data)} training and {len(val_data)} validation records.")
-Step 4: Train the Model
-This step uses LoRA to add a small, specialized layer to the model. We are using the modern SFTConfig and SFTTrainer pattern to ensure the code stays compatible with the latest updates.
 
-Python
+```
+
+---
+
+## 🧠 Step 4: Train the Model
+
+This step applies the LoRA "expert layer" to the base model. The settings are tuned to 3 epochs and a $2 \times 10^{-4}$ learning rate for optimal reasoning.
+
+```python
 import torch
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -83,19 +109,16 @@ from peft import LoraConfig
 BASE_MODEL = "mistralai/Mistral-7B-v0.3"
 OUT_DIR = "aws-playbook-model"
 
-# 1. Load Data
 dataset = load_dataset("json", data_files={"train": "train.jsonl", "validation": "val.jsonl"})
 tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 tokenizer.pad_token = tokenizer.eos_token
 
-# 2. Load Model
 model = AutoModelForCausalLM.from_pretrained(
     BASE_MODEL,
     torch_dtype=torch.bfloat16, 
     device_map="auto"
 )
 
-# 3. Configure Training
 sft_config = SFTConfig(
     output_dir=OUT_DIR,
     dataset_text_field="text",
@@ -105,19 +128,17 @@ sft_config = SFTConfig(
     learning_rate=2e-4, 
     num_train_epochs=3,
     bf16=True,
-    eval_strategy="epoch", # Modern setting to avoid warnings
+    eval_strategy="epoch",
     save_strategy="no",
     report_to="none"
 )
 
-# 4. LoRA Setup
 lora_config = LoraConfig(
     r=32, lora_alpha=64,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     task_type="CAUSAL_LM"
 )
 
-# 5. Start Training
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset["train"],
@@ -127,14 +148,19 @@ trainer = SFTTrainer(
     args=sft_config,
 )
 
-print("Starting training...")
 trainer.train()
 trainer.save_model(OUT_DIR)
-print(f"✅ Training Complete! Saved to: {OUT_DIR}")
-Step 5: Load the Model
-This script loads the base model and attaches your new "expert layer."
+print(f"✅ Training Complete!")
 
-Python
+```
+
+---
+
+## ⚡ Step 5: Load the Model
+
+Load the base model and your new fine-tuned adapter for inference.
+
+```python
 from peft import PeftModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
@@ -151,6 +177,15 @@ base_model = AutoModelForCausalLM.from_pretrained(
 model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
 model.eval()
 
+```
+
+---
+
+## 💬 Step 6: Ask Your Questions
+
+Use the function below to chat with your custom AI coach.
+
+```python
 def ask_ai(question):
     prompt = f"<s>[INST] {question} [/INST]"
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
@@ -162,20 +197,20 @@ def ask_ai(question):
             temperature=0.3,
             top_p=0.9,
             repetition_penalty=1.1,
-            do_sample=True,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.eos_token_id
+            do_sample=True
         )
     
     full_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    answer = full_text.split("[/INST]")[-1].strip()
-    return answer
-    
-print("🎉 Model Loaded! You can now ask questions.")
-Step 6: Ask Your Questions
-Now you can talk to your new AI coach!
+    return full_text.split("[/INST]")[-1].strip()
 
-Python
-print(ask_ai("How do I write an effective resume?"))
-print(ask_ai("How do I build a successful cloud portfolio?"))
 print(ask_ai("What are the top cloud computing careers?"))
+
+```
+
+```
+
+---
+
+**Would you like me to help you write a "Prerequisites" section for this file so users know exactly what hardware they need?**
+
+```

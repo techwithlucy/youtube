@@ -205,11 +205,3 @@ def ask_ai(question):
 print(ask_ai("What are the top cloud computing careers?"))
 
 ```
-
-```
-
----
-
-**Would you like me to help you write a "Prerequisites" section for this file so users know exactly what hardware they need?**
-
-```

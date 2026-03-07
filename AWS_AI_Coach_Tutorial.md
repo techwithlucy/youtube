@@ -155,9 +155,9 @@ print(f"✅ Training Complete!")
 
 ---
 
-## ⚡ Step 5: Load the Model
+## ⚡ Step 5: Load and Set Up the AI
 
-Load the base model and your new fine-tuned adapter for inference.
+Run this cell once to load your newly trained AI coach and set up the ask_ai tool.
 
 ```python
 from peft import PeftModel
@@ -176,15 +176,6 @@ base_model = AutoModelForCausalLM.from_pretrained(
 model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
 model.eval()
 
-```
-
----
-
-## 💬 Step 6: Ask Your Questions
-
-Use the function below to chat with your custom AI coach.
-
-```python
 def ask_ai(question):
     prompt = f"<s>[INST] {question} [/INST]"
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
@@ -194,14 +185,28 @@ def ask_ai(question):
             **inputs,
             max_new_tokens=300,
             temperature=0.3,
-            top_p=0.9,
+            top_p=0.9, # Fixed: Added for cleaner output
             repetition_penalty=1.1,
-            do_sample=True
+            do_sample=True,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.eos_token_id
         )
     
     full_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return full_text.split("[/INST]")[-1].strip()
 
+print("🎉 AI Coach is ready!")
+```
+
+---
+
+## 💬 Step 6: Ask Your Questions
+
+Now, in any new cell, you can simply type your questions to get an answer:
+
+```python
+print(ask_ai("How do I write an effective resume?"))
+print(ask_ai("How do I build a successful cloud portfolio?"))
 print(ask_ai("What are the top cloud computing careers?"))
 
 ```

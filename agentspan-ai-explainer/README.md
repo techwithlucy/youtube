@@ -75,8 +75,8 @@ You should see `llama3.1` in the list.
 - **Command:**
 
 ```bash
-git clone https://github.com/techwithlucy/agentspan-ai-explainer
-cd agentspan-ai-explainer
+git clone [https://github.com/techwithlucy/youtube]
+cd youtube/agentspan-ai-explainer
 ```
 
 ---

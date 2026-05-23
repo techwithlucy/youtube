@@ -1,3 +1,0 @@
-agentspan
-flask
-pydantic

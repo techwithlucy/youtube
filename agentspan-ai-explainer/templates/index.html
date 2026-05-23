@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Concept Explainer · Built on Agentspan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f3;
+  --ink: #1a1814;
+  --ink-soft: #4a463e;
+  --muted: #8b8578;
+  --line: #e8e2d4;
+  --line-strong: #d4cdb8;
+  --paper: #ffffff;
+  --accent: #c4521f;
+  --accent-soft: #f5e6dc;
+  --shadow-sm: 0 1px 2px rgba(26, 24, 20, 0.04);
+  --shadow-md: 0 8px 28px -8px rgba(26, 24, 20, 0.12), 0 2px 4px rgba(26, 24, 20, 0.04);
+  --shadow-lg: 0 20px 60px -20px rgba(26, 24, 20, 0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Subtle paper-grain texture across the page */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(26,24,20,0.025) 1px, transparent 0);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top header bar */
+.topbar {
+  position: relative; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 24px 48px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(250, 248, 243, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex; gap: 24px;
+}
+.meta span::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #6fa86f;
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Main layout */
+.page {
+  position: relative; z-index: 1;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 80px 48px 120px;
+}
+
+/* Editorial header */
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease-out 0.1s forwards;
+}
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: clamp(48px, 7vw, 88px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  max-width: 14ch;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+.lede {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(18px, 1.8vw, 22px);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 56ch;
+  margin-bottom: 56px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.35s forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input row */
+.input-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 10px;
+  display: flex; gap: 10px; align-items: center;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.5s forwards;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-card:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+}
+input {
+  flex: 1;
+  border: 0; outline: 0;
+  background: transparent;
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  padding: 16px 20px;
+  color: var(--ink);
+}
+input::placeholder { color: var(--muted); font-weight: 400; }
+button {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px 28px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: transform 0.15s ease, background 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+button:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+button:active:not(:disabled) { transform: translateY(0); }
+button:disabled { opacity: 0.5; cursor: default; }
+button svg { width: 14px; height: 14px; }
+
+/* Suggestion chips below input */
+.suggestions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 64px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+.sug-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 0;
+  margin-right: 4px;
+}
+.sug {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sug:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Loading state */
+.loading {
+  display: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 24px 0;
+  align-items: center; gap: 12px;
+}
+.loading.show { display: flex; }
+.spinner {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error state */
+.error {
+  display: none;
+  padding: 20px 24px;
+  border: 1px solid #e6c5b8;
+  background: #fdf3ee;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #a04320;
+  margin-bottom: 32px;
+}
+.error.show { display: block; }
+
+/* Result */
+.result {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.result.show { display: block; opacity: 1; transform: translateY(0); }
+
+.result-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 40px;
+}
+.result-concept {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.result-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-align: right;
+}
+.result-id code {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+/* Sections - editorial layout */
+.section {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 48px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+}
+.section:last-child { border-bottom: 0; }
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 4px;
+}
+.section-label .num {
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.section-body {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+/* The example block gets a quote-style left rule */
+.example-body {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.55;
+  padding-left: 24px;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+}
+
+/* Related concepts as small numbered tags */
+.related-list {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.related-list span {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  transition: all 0.2s;
+}
+.related-list span:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+.related-list .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Footer credit */
+.footer {
+  position: relative; z-index: 1;
+  margin-top: 80px;
+  padding: 32px 48px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.footer strong { color: var(--ink); font-weight: 600; }
+
+/* Mobile */
+@media (max-width: 700px) {
+  .topbar { padding: 16px 24px; }
+  .meta span:first-child { display: none; }
+  .page { padding: 48px 24px 80px; }
+  .section { grid-template-columns: 1fr; gap: 12px; }
+  .result-header { flex-direction: column; gap: 12px; }
+  .result-id { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="brand-dot"></span> AI Concept Explainer</div>
+  <div class="meta">
+    <span>Agentspan runtime</span>
+    <span>Mistral Small</span>
+  </div>
+</div>
+
+<main class="page">
+  <div class="eyebrow">— A demonstration</div>
+  <h1>Understand any AI concept, <em>in plain English.</em></h1>
+  <p class="lede">Type any term from the world of AI — anything from embeddings to fine-tuning to retrieval-augmented generation. The agent breaks it down clearly, with a practical example and the concepts it connects to.</p>
+
+  <div class="input-card">
+    <input id="term" placeholder="e.g. RAG, fine-tuning, embeddings, transformers…" autocomplete="off" autofocus>
+    <button id="go">
+      Explain
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="suggestions">
+    <span class="sug-label">Try:</span>
+    <button class="sug" data-term="RAG">RAG</button>
+    <button class="sug" data-term="embeddings">Embeddings</button>
+    <button class="sug" data-term="fine-tuning">Fine-tuning</button>
+    <button class="sug" data-term="agentic AI">Agentic AI</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <span class="spinner"></span>
+    <span>The agent is thinking…</span>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <article class="result" id="result">
+    <div class="result-header">
+      <div class="result-concept" id="r-concept"></div>
+      <div class="result-id">
+        Agentspan run
+        <code id="r-id"></code>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="section-label"><span class="num">01</span> In plain English</div>
+      <div class="section-body" id="r-plain"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-label"><span class="num">02</span> Practical example</div>
+      <div class="example-body" id="r-example"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-label"><span class="num">03</span> Related concepts</div>
+      <div class="related-list" id="r-related"></div>
+    </section>
+  </article>
+</main>
+
+<div class="footer">
+  Built on <strong>Agentspan</strong> · Durable AI agents
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function explain(term) {
+  if (!term) term = $("term").value.trim();
+  if (!term) return;
+  $("term").value = term;
+
+  $("go").disabled = true;
+  $("result").classList.remove("show");
+  $("error").classList.remove("show");
+  $("loading").classList.add("show");
+
+  try {
+    const res = await fetch("/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ term })
+    });
+    const data = await res.json();
+    $("loading").classList.remove("show");
+
+    if (!res.ok) {
+      $("error").textContent = data.error || "Something went wrong.";
+      $("error").classList.add("show");
+      return;
+    }
+
+    $("r-concept").textContent = data.concept;
+    $("r-plain").textContent = data.plain_english;
+    $("r-example").textContent = data.practical_example;
+    $("r-id").textContent = (data.workflow_id || "").slice(0, 8) + "…";
+    $("r-related").innerHTML = data.related_concepts
+      .map(c => `<span><span class="dot"></span>${c}</span>`).join("");
+
+    // Trigger CSS transition
+    requestAnimationFrame(() => {
+      $("result").classList.add("show");
+      $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  } catch (e) {
+    $("loading").classList.remove("show");
+    $("error").textContent = "Could not reach the server. Is app.py running?";
+    $("error").classList.add("show");
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+$("go").addEventListener("click", () => explain());
+$("term").addEventListener("keydown", e => { if (e.key === "Enter") explain(); });
+document.querySelectorAll(".sug").forEach(b => {
+  b.addEventListener("click", () => explain(b.dataset.term));
+});
+</script>
+</body>
+</html>
